@@ -1,0 +1,43 @@
+name: Check Deployed Version
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check-version:
+    runs-on: [self-hosted, windows]
+    steps:
+    - name: Check Versions
+      shell: powershell
+      run: |
+        $services = @(
+            @{ Name = "ServiceA"; Path = "D:\Service\Web\github_actions_test_A" },
+            @{ Name = "ServiceB"; Path = "D:\Service\Web\github_actions_test_B" }
+        )
+
+        foreach ($service in $services) {
+            $metadataPath = Join-Path $service.Path "deploy_metadata.json"
+            Write-Host "`n----------------------------------------"
+            Write-Host "Checking $($service.Name)..."
+            
+            if (Test-Path $metadataPath) {
+                try {
+                    $jsonContent = Get-Content -Path $metadataPath -Raw
+                    $metadata = $jsonContent | ConvertFrom-Json
+                    Write-Host "  Version: $($metadata.version)"
+                    Write-Host "  Branch:  $($metadata.branch)"
+                    Write-Host "  Date:    $($metadata.deployDate)"
+                } catch {
+                    Write-Warning "  Error reading metadata: $_"
+                }
+            } else {
+                Write-Warning "  No deployment metadata found at $metadataPath"
+                # Fallback: Check if directory exists at least
+                if (Test-Path $service.Path) {
+                    Write-Host "  (Directory exists, but no metadata file)"
+                } else {
+                    Write-Host "  (Directory does not exist)"
+                }
+            }
+        }
+        Write-Host "`n----------------------------------------"

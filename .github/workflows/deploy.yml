@@ -11,6 +11,13 @@ on:
           - '1.0.0'
           - '1.0.1'
           - 'latest'
+      target_project:
+        description: 'Target Project'
+        required: true
+        type: choice
+        options:
+          - 'ServiceA'
+          - 'ServiceB'
       target_branch:
         description: 'Target Branch to confirm (e.g. main)'
         required: true
@@ -30,7 +37,7 @@ jobs:
             Write-Error "Target branch mismatch! Input: $targetBranch, Current: $currentBranch"
             exit 1
         }
-        Write-Host "Verifying deployment for version: ${{ github.event.inputs.version }}"
+        Write-Host "Verifying deployment for Project: ${{ github.event.inputs.target_project }} Version: ${{ github.event.inputs.version }}"
     
     - uses: actions/checkout@v4
 
@@ -41,16 +48,39 @@ jobs:
 
     - name: Build and Publish
       run: |
-        dotnet publish -c Release -o ./publish
+        $project = "${{ github.event.inputs.target_project }}"
+        dotnet publish ./$project -c Release -o ./publish
+
+    - name: Create Metadata File
+      shell: powershell
+      run: |
+        $metadata = @{
+            version = "${{ github.event.inputs.version }}"
+            branch = "${{ github.ref_name }}"
+            deployDate = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+        }
+        $metadata | ConvertTo-Json | Out-File -FilePath ./publish/deploy_metadata.json -Encoding utf8
 
     - name: Deploy to IIS
       shell: powershell
       run: |
         Import-Module WebAdministration -ErrorAction SilentlyContinue
-        $appPoolName = "github_actions_test"
-        $deployPath = 'D:\Service\Web\github_actions_test'
         
-        Write-Host "Deploying to $deployPath"
+        $project = "${{ github.event.inputs.target_project }}"
+        
+        # Configure names based on project
+        if ($project -eq "ServiceA") {
+            $appPoolName = "github_actions_test_A"
+            $deployPath = "D:\Service\Web\github_actions_test_A"
+        } elseif ($project -eq "ServiceB") {
+            $appPoolName = "github_actions_test_B"
+            $deployPath = "D:\Service\Web\github_actions_test_B"
+        } else {
+            Write-Error "Unknown project: $project"
+            exit 1
+        }
+
+        Write-Host "Deploying $project to $deployPath"
         
         # Ensure destination exists
         if (!(Test-Path -Path $deployPath)) {
