@@ -71,10 +71,10 @@ jobs:
         # Configure names based on project
         if ($project -eq "ServiceA") {
             $appPoolName = "github_actions_test_A"
-            $deployPath = "D:\Service\Web\github_actions_test_A"
+            $deployPath = "D:\Service\Web\github_actions_test\api_a"
         } elseif ($project -eq "ServiceB") {
             $appPoolName = "github_actions_test_B"
-            $deployPath = "D:\Service\Web\github_actions_test_B"
+            $deployPath = "D:\Service\Web\github_actions_test\api_b"
         } else {
             Write-Error "Unknown project: $project"
             exit 1

@@ -11,8 +11,8 @@ jobs:
       shell: powershell
       run: |
         $services = @(
-            @{ Name = "ServiceA"; Path = "D:\Service\Web\github_actions_test_A" },
-            @{ Name = "ServiceB"; Path = "D:\Service\Web\github_actions_test_B" }
+            @{ Name = "ServiceA"; Path = "D:\Service\Web\github_actions_test\api_a" },
+            @{ Name = "ServiceB"; Path = "D:\Service\Web\github_actions_test\api_b" }
         )
 
         foreach ($service in $services) {
