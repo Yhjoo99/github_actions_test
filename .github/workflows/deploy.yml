@@ -1,14 +1,33 @@
 name: Deploy to Windows Server
 
 on:
-  push:
-    branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Deployment Version'
+        required: true
+        type: string
+      target_branch:
+        description: 'Target Branch to confirm (e.g. main)'
+        required: true
+        default: 'main'
 
 jobs:
   deploy:
     runs-on: [self-hosted, windows]
 
     steps:
+    - name: Verify Branch and Version
+      shell: powershell
+      run: |
+        $targetBranch = "${{ github.event.inputs.target_branch }}"
+        $currentBranch = "${{ github.ref_name }}"
+        if ($targetBranch -ne $currentBranch) {
+            Write-Error "Target branch mismatch! Input: $targetBranch, Current: $currentBranch"
+            exit 1
+        }
+        Write-Host "Verifying deployment for version: ${{ github.event.inputs.version }}"
+    
     - uses: actions/checkout@v4
 
     - name: Setup .NET
