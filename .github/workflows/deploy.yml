@@ -1,0 +1,55 @@
+name: Deploy to Windows Server
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, windows]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.x
+
+    - name: Build and Publish
+      run: |
+        dotnet publish -c Release -o ./publish
+
+    - name: Deploy to IIS
+      shell: powershell
+      run: |
+        Import-Module WebAdministration -ErrorAction SilentlyContinue
+        $appPoolName = "github_actions_test"
+        $deployPath = 'D:\Service\Web\github_actions_test'
+        
+        Write-Host "Deploying to $deployPath"
+        
+        # Ensure destination exists
+        if (!(Test-Path -Path $deployPath)) {
+            New-Item -ItemType Directory -Force -Path $deployPath | Out-Null
+        }
+
+        # Stop AppPool
+        $appPool = Get-IISAppPool -Name $appPoolName -ErrorAction SilentlyContinue
+        if ($appPool -and $appPool.State -eq "Started") {
+            Write-Host "Stopping AppPool $appPoolName..."
+            Stop-WebAppPool -Name $appPoolName
+            Start-Sleep -Seconds 5
+        } elseif (!$appPool) {
+            Write-Warning "AppPool $appPoolName not found. Skipping stop."
+        }
+        
+        # Copy
+        Write-Host "Copying files..."
+        Copy-Item -Path .\publish\* -Destination $deployPath -Recurse -Force
+        
+        # Start AppPool
+        if ($appPool) {
+            Write-Host "Starting AppPool $appPoolName..."
+            Start-WebAppPool -Name $appPoolName
+        }
