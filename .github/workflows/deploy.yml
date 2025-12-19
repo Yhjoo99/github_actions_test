@@ -6,7 +6,11 @@ on:
       version:
         description: 'Deployment Version'
         required: true
-        type: string
+        type: choice
+        options:
+          - '1.0.0'
+          - '1.0.1'
+          - 'latest'
       target_branch:
         description: 'Target Branch to confirm (e.g. main)'
         required: true
